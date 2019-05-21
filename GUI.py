@@ -8,9 +8,6 @@ import tensorflow as tf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
-global text
-text = ''
-
 def classify(image_path):
     # Read the image_data
     image_data = tf.gfile.FastGFile(image_path, 'rb').read()
@@ -36,7 +33,8 @@ def classify(image_path):
         human_string = label_lines[top_k[0]]
         return human_string
 
-imglst = []
+global imgnum
+imgnum = 0
 x = 400
 y = 150
 h = 200
@@ -73,17 +71,20 @@ class MultiImage():
         self.imglst = []
         
     def add_image(self, img, n):
-        if n != 0:
-            self.image = self.c.create_image((n % 8) * 225 + 125,
-                                             125 + (n // 8) * 225, image=img)
-        else:
-            self.image = self.c.create_image(0,
-                                             125 + (n // 8) * 225, image=img, anchor=NW)
+        self.image = self.c.create_image((n % 8) * 225 + 125,
+                                         125 + (n // 8) * 225, image=img)
         self.image = img
         self.imglst.append(self.image)
+        print(n)
+
+    def clear(self):
+        self.c.delete("all")
+        self.imglst = []
+        text.set("")
 
 def translate():
     global text
+    global imgnum
     _, frame = cap.read()
     frame = cv2.flip(frame, 1)
     cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
@@ -109,22 +110,22 @@ def translate():
     
     font = cv2.FONT_HERSHEY_SIMPLEX
     cv2.putText(roi, letter,(5, 190), font, 2, (0), 4, cv2.LINE_AA)
-    imglst.append(roi)
     imgtk = opencv2tkinter(roi)
     #print(roi)
     TranslateLabel.config(text = "Translates to: " + letter)
     if "nothing" in letter:
         pass
     elif "del" in letter:
-        MI.add_image(imgtk, len(imglst))
-        text = text[:-1]
+        MI.add_image(imgtk, imgnum)
+        text.set(text.get()[:-1])
     elif "space" in letter:
-        MI.add_image(imgtk, len(imglst))
-        text = text + " "
+        MI.add_image(imgtk, imgnum)
+        text.set(text.get() + " ")
     else:
-        MI.add_image(imgtk, len(imglst))
-        text = text + letter
+        MI.add_image(imgtk, imgnum)
+        text.set(text.get() + letter)
     WordLabel.config(text=text)
+    imgnum += 1
 
 def opencv2tkinter(img):
     img = Image.fromarray(img)
@@ -132,8 +133,11 @@ def opencv2tkinter(img):
     return imgtk
 
 def clear():
-    text = ''
-    WordLabel.config(text=text)
+    global MI
+    global imgnum
+    text.set('')
+    MI.clear()
+    imgnum = 0
 
 def show_frame():
     _, frame = cap.read()
@@ -147,12 +151,15 @@ def show_frame():
     pic.after(5, show_frame)
 
 root = Tk()
+text = StringVar()
+text.set("")
 #root.bind('<Escape>', lambda e: root.quit())
 root.title("Inauritus")
 root.state("zoomed")
 imgicon = PhotoImage(file='InauritusBlack.gif')
 root.tk.call('wm', 'iconphoto', root._w, imgicon)
 
+global tabControl
 tabControl = ttk.Notebook()
 TabSign = ttk.Frame(tabControl)
 TabImg = ttk.Frame(tabControl)
@@ -179,9 +186,10 @@ TranslateLabel.pack(padx = 30)
 Placeholder = Label(TabSign, text = "")
 Placeholder.pack()
 
+global MI
 MI = MultiImage(TabImg)
 
-WordLabel = Label(TabSentence, text=text, font=("Helvetica", 20))
+WordLabel = Label(TabSentence, font=("Helvetica", 20), textvariable=text)
 WordLabel.pack()
 
 ClearButton = Button(TabSentence, text = "Clear", font=("Helvetica", 20), command=clear)
