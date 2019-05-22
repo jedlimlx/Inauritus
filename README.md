@@ -12,3 +12,4 @@ Under the captures tab, all captures are stored and displayed.
 
 Words and sentences are displayed in the sentence tab.
 
+Trained models can be found at https://www.dropbox.com/s/o543amym1bbe7pg/logs.zip?dl=0
