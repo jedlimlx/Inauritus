@@ -31,7 +31,13 @@ def classify(image_path):
         # Sort to show labels of first prediction in order of confidence
         top_k = predictions[0].argsort()[-len(predictions[0]):][::-1]
         human_string = label_lines[top_k[0]]
-        return human_string
+        score = predictions[0][top_k[0]]
+        for node_id in top_k:
+            s = label_lines[node_id]
+            sc = predictions[0][node_id]
+            print('%s (score = %.5f)' % (s, sc))
+            
+        return human_string, score
 
 global imgnum
 imgnum = 0
@@ -77,6 +83,9 @@ class MultiImage():
         self.imglst.append(self.image)
         print(n)
 
+    def remove_image(self):
+        self.imglst.remove(self.imglst[-1])
+
     def clear(self):
         self.c.delete("all")
         self.imglst = []
@@ -106,17 +115,18 @@ def translate():
     letter = Agent.convert_prediction_array_to_output(predictions)
     '''
     cv2.imwrite("predict.jpg", img_to_predict)
-    letter = classify("predict.jpg")
+    letter, score = classify("predict.jpg")
     
     font = cv2.FONT_HERSHEY_SIMPLEX
     cv2.putText(roi, letter,(5, 190), font, 2, (0), 4, cv2.LINE_AA)
     imgtk = opencv2tkinter(roi)
     #print(roi)
-    TranslateLabel.config(text = "Translates to: " + letter)
+    TranslateLabel.config(text = "Translates to: " + letter + " (" + str(score) + ")")
     if "nothing" in letter:
         pass
     elif "del" in letter:
-        MI.add_image(imgtk, imgnum)
+        MI.remove_image()
+        imgnum -= 1
         text.set(text.get()[:-1])
     elif "space" in letter:
         MI.add_image(imgtk, imgnum)
@@ -124,8 +134,8 @@ def translate():
     else:
         MI.add_image(imgtk, imgnum)
         text.set(text.get() + letter)
+        imgnum += 1
     WordLabel.config(text=text)
-    imgnum += 1
 
 def opencv2tkinter(img):
     img = Image.fromarray(img)
